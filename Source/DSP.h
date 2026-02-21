@@ -9,7 +9,7 @@ struct Filter {
 
     void hpfLRCoeffs(float f_crossover, float fs)
     {
-        // Per un LR4, mettiamo in cascata due Butterworth del 2° ordine (Q = 0.707)
+        // LR4, two Butterworths in cascade 2° order (Q = 0.707)
         float omega = juce::MathConstants<float>::pi * f_crossover;
         float kappa = omega / std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
         float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + std::sqrt(2.0f) * kappa * omega;
@@ -113,18 +113,18 @@ struct DSP
             {
                 float inputSample = a_vAudioBlocksInPlace[ch][i];
 
-                // LOW PASS (LR4 = LPF cascata LPF)
+                // LOW PASS (LR4 = LPF cascade LPF)
                 float lp_stage1 = filters[ch].lowpass_filter(inputSample, l_s1_a[ch], l_s2_a[ch], filters[ch].lpfCoeffs);
                 float low = filters[ch].lowpass_filter(lp_stage1, l_s1_b[ch], l_s2_b[ch], filters[ch].lpfCoeffs);
 
-                // HIGH PASS (LR4 = HPF cascata HPF)
+                // HIGH PASS (LR4 = HPF cascade HPF)
                 float hp_stage1 = filters[ch].highpass_filter(inputSample, h_s1_a[ch], h_s2_a[ch], filters[ch].hpfCoeffs);
                 float high = filters[ch].highpass_filter(hp_stage1, h_s1_b[ch], h_s2_b[ch], filters[ch].hpfCoeffs);
 
-                // Saturazione solo sui bassi
+                // Saturation only on the bass
                 float saturatedLow = tubeSaturation(low, _fGain_01);
 
-                // Somma diretta (LR4 incrocia a -6dB, somma piatta a 0dB)
+                // Direct sum (LR4 crosses at -6dB, flat sum at 0dB)
                 a_vAudioBlocksInPlace[ch][i] = (high + saturatedLow);
             }
         }
@@ -145,9 +145,10 @@ struct DSP
     {
         if (mixAmount <= 0.0f) return x;
 
-        float x_drive = x * (1.0f + mixAmount * 2.0f); // Aumenta l'intensità in base al mix
+        float x_drive = x * (1.0f + mixAmount * 2.0f); // Increase intensity based on mix
         float y = std::tanh(x_drive); // Soft clipping più naturale
 
         return (y * mixAmount) + (x * (1.0f - mixAmount));
     }
 };
+

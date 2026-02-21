@@ -13,8 +13,7 @@
 LR_SaturatorAudioProcessorEditor::LR_SaturatorAudioProcessorEditor (LR_SaturatorAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
+    // Make sure that before the constructor has finished, you've set the editor's size to whatever you need it to be.
     setSize (400, 300);
     crossoverSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     crossoverSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
@@ -41,7 +40,6 @@ void LR_SaturatorAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour(juce::Colours::white);
     g.setFont(juce::FontOptions(18.0f));
 
-    // Scriviamo i titoli sopra i componenti per chiarezza
     g.drawText("Crossover", 20, 20, 100, 20, juce::Justification::centred);
     g.drawText("Saturation", 140, 20, 100, 20, juce::Justification::centred);
     g.drawText("Output", 280, 20, 80, 20, juce::Justification::centred);
@@ -53,3 +51,4 @@ void LR_SaturatorAudioProcessorEditor::resized()
     mixSlider.setBounds(140, 40, 100, 120);
     gainSlider.setBounds(280, 40, 80, 200);
 }
+

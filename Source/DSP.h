@@ -1,4 +1,3 @@
-
 typedef struct {
     float a0, a1, a2, b1, b2;
 } LRCoefficients;
@@ -10,28 +9,29 @@ struct Filter {
 
     void hpfLRCoeffs(float f_crossover, float fs)
     {
+        // Per un LR4, mettiamo in cascata due Butterworth del 2° ordine (Q = 0.707)
         float omega = juce::MathConstants<float>::pi * f_crossover;
         float kappa = omega / std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
-        float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + 2.0f * kappa * omega;
+        float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + std::sqrt(2.0f) * kappa * omega;
 
         hpfCoeffs.a0 = std::pow(kappa, 2.0f) / delta;
         hpfCoeffs.a1 = -2.0f * std::pow(kappa, 2.0f) / delta;
         hpfCoeffs.a2 = std::pow(kappa, 2.0f) / delta;
         hpfCoeffs.b1 = (-2.0f * std::pow(kappa, 2.0f) + 2.0f * std::pow(omega, 2.0f)) / delta;
-        hpfCoeffs.b2 = (-2.0f * kappa * omega + std::pow(kappa, 2.0f) + std::pow(omega, 2.0f)) / delta;
+        hpfCoeffs.b2 = (std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) - std::sqrt(2.0f) * kappa * omega) / delta;
     }
 
     void lpfLRCoeffs(float f_crossover, float fs)
     {
         float omega = juce::MathConstants<float>::pi * f_crossover;
         float kappa = omega / std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
-        float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + 2.0f * kappa * omega;
+        float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + std::sqrt(2.0f) * kappa * omega;
 
         lpfCoeffs.a0 = std::pow(omega, 2.0f) / delta;
         lpfCoeffs.a1 = 2.0f * std::pow(omega, 2.0f) / delta;
         lpfCoeffs.a2 = lpfCoeffs.a0;
         lpfCoeffs.b1 = (-2.0f * std::pow(kappa, 2.0f) + 2.0f * std::pow(omega, 2.0f)) / delta;
-        lpfCoeffs.b2 = (-2.0f * kappa * omega + std::pow(kappa, 2.0f) + std::pow(omega, 2.0f)) / delta;
+        lpfCoeffs.b2 = (std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) - std::sqrt(2.0f) * kappa * omega) / delta;
     }
 
     float lowpass_filter(float input, float& s1, float& s2, const LRCoefficients& c) {
@@ -53,7 +53,8 @@ struct Filter {
 
 struct DSP
 {
-    std::vector<float> h_s1, h_s2, l_s1, l_s2;
+    std::vector<float> h_s1_a, h_s2_a, h_s1_b, h_s2_b; // Stati High-pass (A e B)
+    std::vector<float> l_s1_a, l_s2_a, l_s1_b, l_s2_b; // Stati Low-pass (A e B)
     std::vector<std::vector<float>> highBandBuffer, lowBandBuffer;
     std::vector<Filter> filters;
 
@@ -112,13 +113,19 @@ struct DSP
             {
                 float inputSample = a_vAudioBlocksInPlace[ch][i];
 
-                float low = filters[ch].lowpass_filter(inputSample, l_s1[ch], l_s2[ch], filters[ch].lpfCoeffs);
-                float high = filters[ch].highpass_filter(inputSample, h_s1[ch], h_s2[ch], filters[ch].hpfCoeffs);
+                // LOW PASS (LR4 = LPF cascata LPF)
+                float lp_stage1 = filters[ch].lowpass_filter(inputSample, l_s1_a[ch], l_s2_a[ch], filters[ch].lpfCoeffs);
+                float low = filters[ch].lowpass_filter(lp_stage1, l_s1_b[ch], l_s2_b[ch], filters[ch].lpfCoeffs);
 
+                // HIGH PASS (LR4 = HPF cascata HPF)
+                float hp_stage1 = filters[ch].highpass_filter(inputSample, h_s1_a[ch], h_s2_a[ch], filters[ch].hpfCoeffs);
+                float high = filters[ch].highpass_filter(hp_stage1, h_s1_b[ch], h_s2_b[ch], filters[ch].hpfCoeffs);
+
+                // Saturazione solo sui bassi
                 float saturatedLow = tubeSaturation(low, _fGain_01);
 
-                // Add the bands (the 0.707 factor compensates for the peak at the crossover)
-                a_vAudioBlocksInPlace[ch][i] = (high + saturatedLow) * 0.707f;
+                // Somma diretta (LR4 incrocia a -6dB, somma piatta a 0dB)
+                a_vAudioBlocksInPlace[ch][i] = (high + saturatedLow);
             }
         }
     }
@@ -127,10 +134,10 @@ struct DSP
     {
         if (numChannels <= 0) return;
         filters.assign(numChannels, Filter());
-        h_s1.assign(numChannels, 0.0f);
-        h_s2.assign(numChannels, 0.0f);
-        l_s1.assign(numChannels, 0.0f);
-        l_s2.assign(numChannels, 0.0f);
+        h_s1_a.assign(numChannels, 0.0f); h_s2_a.assign(numChannels, 0.0f);
+        h_s1_b.assign(numChannels, 0.0f); h_s2_b.assign(numChannels, 0.0f);
+        l_s1_a.assign(numChannels, 0.0f); l_s2_a.assign(numChannels, 0.0f);
+        l_s1_b.assign(numChannels, 0.0f); l_s2_b.assign(numChannels, 0.0f);
         UpdateFilters();
     }
 
@@ -138,10 +145,9 @@ struct DSP
     {
         if (mixAmount <= 0.0f) return x;
 
-        float x_drive = x * (1.0f + mixAmount * 2.0f); // Increase intensity based on mix
-        float y = std::tanh(x_drive); // more natural soft clipping
+        float x_drive = x * (1.0f + mixAmount * 2.0f); // Aumenta l'intensità in base al mix
+        float y = std::tanh(x_drive); // Soft clipping più naturale
 
         return (y * mixAmount) + (x * (1.0f - mixAmount));
     }
 };
-

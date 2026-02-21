@@ -13,7 +13,8 @@
 LR_SaturatorAudioProcessorEditor::LR_SaturatorAudioProcessorEditor (LR_SaturatorAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    // Make sure that before the constructor has finished, you've set the editor's size to whatever you need it to be.
+    // Make sure that before the constructor has finished, you've set the
+    // editor's size to whatever you need it to be.
     setSize (400, 300);
     crossoverSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     crossoverSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
@@ -24,7 +25,8 @@ LR_SaturatorAudioProcessorEditor::LR_SaturatorAudioProcessorEditor (LR_Saturator
     addAndMakeVisible(gainSlider);
     gainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, "gain", gainSlider);
 
-    mixSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    mixSlider.setSliderStyle(juce::Slider::LinearVertical);
+    mixSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
     addAndMakeVisible(mixSlider);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, "mix", mixSlider);
 }
@@ -40,15 +42,22 @@ void LR_SaturatorAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour(juce::Colours::white);
     g.setFont(juce::FontOptions(18.0f));
 
-    g.drawText("Crossover", 20, 20, 100, 20, juce::Justification::centred);
-    g.drawText("Saturation", 140, 20, 100, 20, juce::Justification::centred);
-    g.drawText("Output", 280, 20, 80, 20, juce::Justification::centred);
+    // Scriviamo i titoli sopra i componenti per chiarezza
+    g.drawText("Crossover", 30, 20, 100, 20, juce::Justification::centred);
+    g.drawText("Saturation", 150, 20, 100, 20, juce::Justification::centred);
+    g.drawText("Output", 270, 20, 100, 20, juce::Justification::centred);
 }
 
 void LR_SaturatorAudioProcessorEditor::resized()
 {
-    crossoverSlider.setBounds(20, 40, 100, 120);
-    mixSlider.setBounds(140, 40, 100, 120);
-    gainSlider.setBounds(280, 40, 80, 200);
+    // Abbiamo 400px di larghezza totale. Distribuiamo i 3 controlli in modo equo.
+    auto area = getLocalBounds().reduced(20); // Margine di sicurezza di 20px ai bordi
+    auto sliderWidth = 100;
+    auto sliderHeight = 180;
+    auto yOffset = 40; // Spazio per le label in alto
+
+    crossoverSlider.setBounds(30, yOffset, sliderWidth, sliderHeight);
+    mixSlider.setBounds(150, yOffset, sliderWidth, sliderHeight);
+    gainSlider.setBounds(270, yOffset, sliderWidth, sliderHeight);
 }
 

@@ -9,52 +9,47 @@ struct Filter {
 
     void hpfLRCoeffs(float f_crossover, float fs)
     {
-        // LR4, two Butterworths in cascade 2° order (Q = 0.707)
-        float omega = juce::MathConstants<float>::pi * f_crossover;
-        float kappa = omega / std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
-        float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + std::sqrt(2.0f) * kappa * omega;
+        float kappa = std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
+        float delta = kappa * kappa + 1.0f + std::sqrt(2.0f) * kappa;
 
-        hpfCoeffs.a0 = std::pow(kappa, 2.0f) / delta;
-        hpfCoeffs.a1 = -2.0f * std::pow(kappa, 2.0f) / delta;
-        hpfCoeffs.a2 = std::pow(kappa, 2.0f) / delta;
-        hpfCoeffs.b1 = (-2.0f * std::pow(kappa, 2.0f) + 2.0f * std::pow(omega, 2.0f)) / delta;
-        hpfCoeffs.b2 = (std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) - std::sqrt(2.0f) * kappa * omega) / delta;
+        hpfCoeffs.a0 = 1.0f / delta;
+        hpfCoeffs.a1 = -2.0f / delta;
+        hpfCoeffs.a2 = 1.0f / delta;
+        hpfCoeffs.b1 = 2.0f * (kappa * kappa - 1.0f) / delta;
+        hpfCoeffs.b2 = (kappa * kappa + 1.0f - std::sqrt(2.0f) * kappa) / delta;
     }
 
     void lpfLRCoeffs(float f_crossover, float fs)
     {
-        float omega = juce::MathConstants<float>::pi * f_crossover;
-        float kappa = omega / std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
-        float delta = std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) + std::sqrt(2.0f) * kappa * omega;
+        float kappa = std::tan(juce::MathConstants<float>::pi * f_crossover / fs);
+        float delta = kappa * kappa + 1.0f + std::sqrt(2.0f) * kappa;
 
-        lpfCoeffs.a0 = std::pow(omega, 2.0f) / delta;
-        lpfCoeffs.a1 = 2.0f * std::pow(omega, 2.0f) / delta;
-        lpfCoeffs.a2 = lpfCoeffs.a0;
-        lpfCoeffs.b1 = (-2.0f * std::pow(kappa, 2.0f) + 2.0f * std::pow(omega, 2.0f)) / delta;
-        lpfCoeffs.b2 = (std::pow(kappa, 2.0f) + std::pow(omega, 2.0f) - std::sqrt(2.0f) * kappa * omega) / delta;
+        lpfCoeffs.a0 = (kappa * kappa) / delta;
+        lpfCoeffs.a1 = 2.0f * (kappa * kappa) / delta;
+        lpfCoeffs.a2 = (kappa * kappa) / delta;
+        lpfCoeffs.b1 = 2.0f * (kappa * kappa - 1.0f) / delta;
+        lpfCoeffs.b2 = (kappa * kappa + 1.0f - std::sqrt(2.0f) * kappa) / delta;
     }
 
     float lowpass_filter(float input, float& s1, float& s2, const LRCoefficients& c) {
-        float output = c.a0 * input + c.a1 * s1 + c.a2 * s2;
-        float next_s1 = input - c.b1 * s1 - c.b2 * s2;
-        s2 = s1;
-        s1 = next_s1;
+        float output = c.a0 * input + s1;
+        s1 = c.a1 * input - c.b1 * output + s2;
+        s2 = c.a2 * input - c.b2 * output;
         return output;
     }
 
     float highpass_filter(float input, float& s1, float& s2, const LRCoefficients& c) {
-        float output = c.a0 * input + c.a1 * s1 + c.a2 * s2;
-        float next_s1 = input - c.b1 * s1 - c.b2 * s2;
-        s2 = s1;
-        s1 = next_s1;
+        float output = c.a0 * input + s1;
+        s1 = c.a1 * input - c.b1 * output + s2;
+        s2 = c.a2 * input - c.b2 * output;
         return output;
     }
 };
 
 struct DSP
 {
-    std::vector<float> h_s1_a, h_s2_a, h_s1_b, h_s2_b; // Stati High-pass (A e B)
-    std::vector<float> l_s1_a, l_s2_a, l_s1_b, l_s2_b; // Stati Low-pass (A e B)
+    std::vector<float> h_s1_a, h_s2_a, h_s1_b, h_s2_b; // States of High-pass (A e B)
+    std::vector<float> l_s1_a, l_s2_a, l_s1_b, l_s2_b; // States of Low-pass (A e B)
     std::vector<std::vector<float>> highBandBuffer, lowBandBuffer;
     std::vector<Filter> filters;
 
@@ -89,13 +84,18 @@ struct DSP
     }
 
     void UpdateFilters() {
+        float safeFreq = std::clamp(f_crossover, 20.0f, (fs * 0.45f));
+
         for (auto& f : filters) {
-            f.hpfLRCoeffs(f_crossover, fs);
-            f.lpfLRCoeffs(f_crossover, fs);
+            f.hpfLRCoeffs(safeFreq, fs);
+            f.lpfLRCoeffs(safeFreq, fs);
         }
     }
 
     void SetGain(float a_fGain_01) { _fGain_01 = a_fGain_01; }
+
+    float _fGain_01_Output = 1.0f;
+    void SetOutputGain(float a_fOutputGain) { _fGain_01_Output = a_fOutputGain; }
 
     void Release() {
         filters.clear();
@@ -124,8 +124,8 @@ struct DSP
                 // Saturation only on the bass
                 float saturatedLow = tubeSaturation(low, _fGain_01);
 
-                // Direct sum (LR4 crosses at -6dB, flat sum at 0dB)
-                a_vAudioBlocksInPlace[ch][i] = (high + saturatedLow);
+                // Direct sum of the bands and application of final output gain (LR4 crosses at -6dB, flat sum at 0dB)
+                a_vAudioBlocksInPlace[ch][i] = (high + saturatedLow) * _fGain_01_Output;
             }
         }
     }
@@ -145,10 +145,9 @@ struct DSP
     {
         if (mixAmount <= 0.0f) return x;
 
-        float x_drive = x * (1.0f + mixAmount * 2.0f); // Increase intensity based on mix
-        float y = std::tanh(x_drive); // Soft clipping più naturale
+        float x_drive = x * (1.0f + mixAmount * 2.0f);
+        float y = std::tanh(x_drive);
 
         return (y * mixAmount) + (x * (1.0f - mixAmount));
     }
 };
-

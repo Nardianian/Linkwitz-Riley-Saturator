@@ -117,7 +117,7 @@ struct DSP
 
                 float saturatedLow = tubeSaturation(low, _fGain_01);
 
-                // Somma le bande (il fattore 0.707 compensa il picco al crossover)
+                // Add the bands (the 0.707 factor compensates for the peak at the crossover)
                 a_vAudioBlocksInPlace[ch][i] = (high + saturatedLow) * 0.707f;
             }
         }
@@ -138,9 +138,10 @@ struct DSP
     {
         if (mixAmount <= 0.0f) return x;
 
-        float x_drive = x * (1.0f + mixAmount * 2.0f); // Aumenta l'intensità in base al mix
-        float y = std::tanh(x_drive); // Soft clipping più naturale
+        float x_drive = x * (1.0f + mixAmount * 2.0f); // Increase intensity based on mix
+        float y = std::tanh(x_drive); // more natural soft clipping
 
         return (y * mixAmount) + (x * (1.0f - mixAmount));
     }
 };
+

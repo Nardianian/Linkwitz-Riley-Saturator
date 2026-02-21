@@ -87,8 +87,7 @@ void LR_SaturatorAudioProcessor::changeProgramName (int index, const juce::Strin
 //==============================================================================
 void LR_SaturatorAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    // Use this method as the place to do any pre-playback initialisation that you need..
     saturator.Init();
     saturator.SetMaxChannels(2);
     saturator.SetMaxBlockSize(samplesPerBlock);
@@ -111,10 +110,8 @@ bool LR_SaturatorAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
     juce::ignoreUnused (layouts);
     return true;
   #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
+    // This is the place where you check if the layout is supported. In this template code we only support mono or stereo.
+    // Some plugin hosts, such as certain GarageBand versions, will only load plugins that support stereo bus layouts.
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
      && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
@@ -172,14 +169,12 @@ juce::AudioProcessorEditor* LR_SaturatorAudioProcessor::createEditor()
 void LR_SaturatorAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    // You could do that either as raw data, or use the XML or ValueTree classes as intermediaries to make it easy to save and load complex data.
 }
 
 void LR_SaturatorAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    // You should use this method to restore your parameters from this memory block, whose contents will have been created by the getStateInformation() call.
 }
 
 //==============================================================================
@@ -197,3 +192,4 @@ juce::AudioProcessorValueTreeState::ParameterLayout LR_SaturatorAudioProcessor::
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("mix", 1), "Mix Saturation", 0.0f, 1.0f, 0.5f));
     return layout;
 }
+

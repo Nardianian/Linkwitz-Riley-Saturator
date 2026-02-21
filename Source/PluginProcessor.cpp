@@ -98,8 +98,7 @@ void LR_SaturatorAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 
 void LR_SaturatorAudioProcessor::releaseResources()
 {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
+    // When playback stops, you can use this as an opportunity to free up any spare memory, etc.
     saturator.Release();
 }
 
@@ -136,9 +135,12 @@ void LR_SaturatorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto numChannels = buffer.getNumChannels();
 
     float currentFreq = *apvts.getRawParameterValue("crossover");
-    float currentGain = *apvts.getRawParameterValue("gain");
+    float currentMix = *apvts.getRawParameterValue("mix");
+    float currentOut = *apvts.getRawParameterValue("gain");
+
     saturator.SetCrossoverFrequency(currentFreq);
-    saturator.SetGain(currentGain);
+    saturator.SetGain(currentMix);
+    saturator.SetOutputGain(currentOut);
 
     // In case we have more outputs than inputs, this code clears any output channels that didn't contain input data, (because these aren't
     // guaranteed to be empty - they may contain garbage). This is here to avoid people getting screaming feedback when they first compile
@@ -169,16 +171,17 @@ juce::AudioProcessorEditor* LR_SaturatorAudioProcessor::createEditor()
 void LR_SaturatorAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes as intermediaries to make it easy to save and load complex data.
+    // You could do that either as raw data, or use the XML or ValueTree classes
+    // as intermediaries to make it easy to save and load complex data.
 }
 
 void LR_SaturatorAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block, whose contents will have been created by the getStateInformation() call.
+    // You should use this method to restore your parameters from this memory block,
+    // whose contents will have been created by the getStateInformation() call.
 }
 
 //==============================================================================
-// This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new LR_SaturatorAudioProcessor();
@@ -192,4 +195,3 @@ juce::AudioProcessorValueTreeState::ParameterLayout LR_SaturatorAudioProcessor::
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("mix", 1), "Mix Saturation", 0.0f, 1.0f, 0.5f));
     return layout;
 }
-

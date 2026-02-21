@@ -36,6 +36,7 @@ LR_SaturatorAudioProcessorEditor::~LR_SaturatorAudioProcessorEditor()
 //==============================================================================
 void LR_SaturatorAudioProcessorEditor::paint (juce::Graphics& g)
 {
+    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
     g.setColour(juce::Colours::white);
     g.setFont(juce::FontOptions(18.0f));
 
@@ -46,14 +47,12 @@ void LR_SaturatorAudioProcessorEditor::paint (juce::Graphics& g)
 
 void LR_SaturatorAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced(20);
+    auto area = getLocalBounds().reduced(20); // Margine di sicurezza di 20px ai bordi
     auto sliderWidth = 100;
     auto sliderHeight = 180;
-    auto yOffset = 40;
+    auto yOffset = 40; // Spazio per le label in alto
 
     crossoverSlider.setBounds(30, yOffset, sliderWidth, sliderHeight);
     mixSlider.setBounds(150, yOffset, sliderWidth, sliderHeight);
     gainSlider.setBounds(270, yOffset, sliderWidth, sliderHeight);
 }
-
-

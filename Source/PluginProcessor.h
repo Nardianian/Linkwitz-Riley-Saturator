@@ -59,4 +59,8 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LR_SaturatorAudioProcessor)
     
     DSP saturator;
+public:
+    juce::AudioProcessorValueTreeState apvts;
+private:
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 };

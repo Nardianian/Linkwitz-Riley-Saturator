@@ -29,5 +29,9 @@ private:
     // access the processor object that created it.
     LR_SaturatorAudioProcessor& audioProcessor;
 
+    juce::Slider crossoverSlider, gainSlider, mixSlider;
+    juce::Label crossoverLabel, gainLabel, mixLabel;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> crossoverAttachment, gainAttachment, mixAttachment;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LR_SaturatorAudioProcessorEditor)
 };
